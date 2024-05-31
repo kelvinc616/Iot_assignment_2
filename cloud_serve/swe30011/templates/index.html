@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+
+
+
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            padding: 20px;
+        }
+        h1 {
+            margin-bottom: 30px;
+        }
+        .btn {
+            margin-right: 10px;
+        }
+        .card {
+            margin-bottom: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            background-color: #007bff;
+            color: #fff;
+            font-size: 24px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .card-body {
+            padding: 20px;
+        }
+        .card-text {
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 class="text-center">Dashboard</h1>
+        
+        <div class="card">
+            <div class="card-header">
+                Weather Analytics
+            </div>
+            <div class="card-body">
+                {% if weather_data %}
+                    <p class="card-text">Temperature: {{ weather_data.temperature }}°C</p>
+                    <p class="card-text">Humidity: {{ weather_data.humidity }}%</p>
+                    <p class="card-text">Weather Description: {{ weather_data.weather_description }}</p>
+                {% else %}
+                    <p class="card-text">Error fetching weather data.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                Room Detail
+            </div>
+            <div class="card-body d-flex justify-content-center">
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('room_dashboard', room='Room 1') }}" class="btn btn-primary">Room 1</a>
+                    <a href="{{ url_for('room_dashboard', room='Room 2') }}" class="btn btn-primary">Room 2</a>
+                    <a href="{{ url_for('room_dashboard', room='Room 3') }}" class="btn btn-primary">Room 3</a>
+                    <a href="{{ url_for('room_dashboard', room='Room 4') }}" class="btn btn-primary">Room 4</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                Room Temperature Charts
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <canvas id="room1Chart"></canvas>
+                    </div>
+                    <div class="col-sm-6">
+                        <canvas id="room2Chart"></canvas>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-sm-6">
+                        <canvas id="room3Chart"></canvas>
+                    </div>
+                    <div class="col-sm-6">
+                        <canvas id="room4Chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+    $(document).ready(function() {
+        fetchRoomTemperatureData('Room 1', 'room1Chart');
+        fetchRoomTemperatureData('Room 2', 'room2Chart');
+        fetchRoomTemperatureData('Room 3', 'room3Chart');
+        fetchRoomTemperatureData('Room 4', 'room4Chart');
+    });
+
+    function fetchRoomTemperatureData(room, chartId) {
+        $.get('/room_temperature', { room: room }, function(data) {
+            if (data.temperature_data && data.temperature_data.length > 0) {
+                const temperatures = data.temperature_data.map(item => item[1]);
+                const labels = data.temperature_data.map(item => item[0]);
+                renderChart(chartId, labels, temperatures, `Temperature (°C) - ${room}`);
+            }
+        }).fail(function() {
+            console.error(`Error fetching temperature data for ${room}`);
+        });
+    }
+
+    function renderChart(chartId, labels, temperatures, label) {
+        const convertedLabels = labels.map(label => {
+            const date = new Date(label);
+            return date.toLocaleString('en-US', { 
+                timeZone: 'UTC',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric',
+                second: 'numeric',
+                hour12: false
+            });
+        });
+    
+        const ctx = document.getElementById(chartId).getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: convertedLabels,
+                datasets: [{
+                    label: label,
+                    data: temperatures,
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Temperature (°C)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Timestamp'
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
